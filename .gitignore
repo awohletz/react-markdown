@@ -5,3 +5,6 @@ node_modules/
 .DS_Store
 react-markdown.min.js
 yarn.lock
+.idea
+lib/*.js
+test/*.js

@@ -1,32 +1,21 @@
-/**
- * @typedef {import('unist').Node} Node
- * @typedef {import('unist').Position} Position
- * @typedef {import('hast').Root} Root
- * @typedef {import('hast').Element} Element
- * @typedef {import('hast').Text} Text
- * @typedef {import('react').ReactNode} ReactNode
- * @typedef {import('../index.js').Components} Components
- */
-
 import fs from 'node:fs'
 import path from 'node:path'
 import {test} from 'uvu'
 import * as assert from 'uvu/assert'
-import React from 'react'
+import React, {ReactElement, ReactNode} from 'react'
 import gfm from 'remark-gfm'
 import {visit} from 'unist-util-visit'
 import raw from 'rehype-raw'
 import toc from 'remark-toc'
 import ReactDom from 'react-dom/server.js'
-import Markdown from '../index.js'
+import Markdown from '../index'
+import {Element, Root} from 'hast'
+import {ReactMarkdownProps} from '../lib/complex-types'
+import {Plugin} from 'unified'
 
 const own = {}.hasOwnProperty
 
-/**
- * @param {ReturnType<Markdown>} input
- * @returns {string}
- */
-function asHtml(input) {
+function asHtml(input: ReactElement): string {
   return ReactDom.renderToStaticMarkup(input)
 }
 
@@ -36,10 +25,9 @@ test('can render the most basic of documents (single paragraph)', () => {
 
 test('should warn when passed `source`', () => {
   const warn = console.warn
-  /** @type {unknown} */
-  let message
+  let message: unknown
 
-  console.warn = (/** @type {unknown} */ d) => {
+  console.warn = (d: unknown) => {
     message = d
   }
 
@@ -55,15 +43,13 @@ test('should warn when passed `source`', () => {
 
 test('should warn when passed non-string children (number)', () => {
   const {error, warn} = console
-  /** @type {unknown} */
   let message
 
   console.error = () => {}
-  console.warn = (/** @type {unknown} */ d) => {
+  console.warn = (d) => {
     message = d
   }
 
-  // @ts-expect-error runtime
   assert.equal(asHtml(<Markdown children={1} />), '')
   assert.equal(
     message,
@@ -76,15 +62,13 @@ test('should warn when passed non-string children (number)', () => {
 
 test('should warn when passed non-string children (boolean)', () => {
   const {error, warn} = console
-  /** @type {unknown} */
   let message
 
   console.error = () => {}
-  console.warn = (/** @type {unknown} */ d) => {
+  console.warn = (d) => {
     message = d
   }
 
-  // @ts-expect-error runtime
   assert.equal(asHtml(<Markdown children={false} />), '')
   assert.equal(
     message,
@@ -96,21 +80,18 @@ test('should warn when passed non-string children (boolean)', () => {
 })
 
 test('should not warn when passed `null` as children', () => {
-  // @ts-expect-error: types do not allow `null`.
   assert.equal(asHtml(<Markdown children={null} />), '')
 })
 
 test('should not warn when passed `undefined` as children', () => {
-  // @ts-expect-error: types do not allow `undefined`.
   assert.equal(asHtml(<Markdown children={undefined} />), '')
 })
 
 test('should warn when passed `allowDangerousHtml`', () => {
   const warn = console.warn
-  /** @type {unknown} */
   let message
 
-  console.warn = (/** @type {unknown} */ d) => {
+  console.warn = (d) => {
     message = d
   }
 
@@ -643,12 +624,7 @@ test('should pass `index: number`, `ordered: boolean`, `checked: boolean | null`
 test('should pass `level: number` to `h1`, `h2`, ...', () => {
   const input = '#\n##\n###'
 
-  /**
-   * @param {object} props
-   * @param {Element} props.node
-   * @param {number} props.level
-   */
-  function heading({node, level, ...props}) {
+  function heading({node, level, ...props}: {node: Element, level: number}) {
     return React.createElement(`h${level}`, props)
   }
 
@@ -757,13 +733,12 @@ test('should pass on raw source position to non-tag components if rawSourcePos o
       rawSourcePos
       rehypePlugins={[raw]}
       components={{
-        // @ts-expect-error JSX types currently only handle element returns not string returns
         em({sourcePosition}) {
           assert.equal(sourcePosition, {
             start: {line: 1, column: 1, offset: 0},
             end: {line: 1, column: 6, offset: 5}
           })
-          return ''
+          return <></>
         }
       }}
     />
@@ -890,8 +865,7 @@ test('should support duplicate definitions', () => {
 })
 
 test('should skip nodes that are defined as disallowed', () => {
-  /** @type {Record<string, {input: string, shouldNotContain: string}>} */
-  const samples = {
+  const samples: Record<string, {input: string, shouldNotContain: string}> = {
     p: {input: 'Paragraphs are cool', shouldNotContain: 'Paragraphs are cool'},
     h1: {input: '# Headers are neat', shouldNotContain: 'Headers are neat'},
     br: {input: 'Text  \nHardbreak', shouldNotContain: '<br/>'},
@@ -915,10 +889,8 @@ test('should skip nodes that are defined as disallowed', () => {
     hr: {input: '\n-----\nAnd with that...', shouldNotContain: '<hr'}
   }
 
-  /** @type {string[]} */
-  const inputs = []
-  /** @type {keyof samples} */
-  let key
+  const inputs: string[] = []
+  let key: keyof typeof samples;
 
   for (key in samples) {
     if (own.call(samples, key)) {
@@ -1002,15 +974,8 @@ test('should be able to use a custom function to determine if the node should be
 test('should be able to override components', () => {
   const input =
     '# Header\n\nParagraph\n## New header\n1. List item\n2. List item 2\n\nFoo'
-  /**
-   * @param {number} level
-   */
-  const heading = (level) => {
-    /**
-     * @param {object} props
-     * @param {ReactNode[]} props.children
-     */
-    const component = (props) => (
+  const heading = (level: number) => {
+    const component = (props: {children: ReactNode[]}) => (
       <span className={`heading level-${level}`}>{props.children}</span>
     )
     return component
@@ -1032,7 +997,7 @@ test('should throw on invalid component', () => {
   const components = {h1: 123}
   assert.throws(
     () =>
-      // @ts-expect-error runtime
+      // @ts-expect-error
       asHtml(<Markdown children={input} components={components} />),
     /Component for name `h1`/
   )
@@ -1137,32 +1102,19 @@ test('should pass index of a node under its parent to components if `includeElem
 })
 
 test('should be able to render components with forwardRef in HOC', () => {
-  /**
-   * @typedef {import('react').Ref<HTMLAnchorElement>} Ref
-   * @typedef {JSX.IntrinsicElements['a'] & import('../lib/ast-to-react').ReactMarkdownProps} Props
-   */
+  type Props = JSX.IntrinsicElements['a'] & ReactMarkdownProps;
+  type Ref = React.Ref<HTMLAnchorElement>;
 
-  /**
-   * @param {(params: Props) => JSX.Element} Component
-   */
-  const wrapper = (Component) =>
+  const wrapper = (Component: (params: Props) => JSX.Element) =>
     React.forwardRef(
-      /**
-       * @param {Props} props
-       * @param {Ref} ref
-       */
-      (props, ref) => <Component ref={ref} {...props} />
+      (props: Props, ref: Ref) => <Component ref={ref} {...props} />
     )
 
-  /**
-   * @param {Props} props
-   */
   // eslint-disable-next-line react/jsx-no-target-blank
-  const wrapped = (props) => <a {...props} />
+  const wrapped = (props: Props) => <a {...props} />
 
   const actual = asHtml(
-    // @ts-expect-error: something up with types for refs.
-    <Markdown components={{a: wrapper(wrapped)}}>
+    <Markdown components={{a: wrapper(wrapped) as any}}>
       [Link](https://example.com/)
     </Markdown>
   )
@@ -1219,8 +1171,7 @@ test('should support formatting at the start of a GFM tasklist (GH-494)', () => 
 test('should support aria properties', () => {
   const input = 'c'
 
-  /** @type {import('unified').Plugin<void[], Root>} */
-  const plugin = () => (root) => {
+  const plugin: Plugin<void[], Root> = () => (root) => {
     root.children.unshift({
       type: 'element',
       tagName: 'input',
@@ -1237,8 +1188,7 @@ test('should support aria properties', () => {
 test('should support data properties', () => {
   const input = 'b'
 
-  /** @type {import('unified').Plugin<void[], Root>} */
-  const plugin = () => (root) => {
+  const plugin: Plugin<void[], Root> = () => (root) => {
     root.children.unshift({
       type: 'element',
       tagName: 'i',
@@ -1255,8 +1205,7 @@ test('should support data properties', () => {
 test('should support comma separated properties', () => {
   const input = 'c'
 
-  /** @type {import('unified').Plugin<void[], Root>} */
-  const plugin = () => (root) => {
+  const plugin: Plugin<void[], Root> = () => (root) => {
     root.children.unshift({
       type: 'element',
       tagName: 'i',
@@ -1273,8 +1222,7 @@ test('should support comma separated properties', () => {
 test('should support `style` properties', () => {
   const input = 'a'
 
-  /** @type {import('unified').Plugin<void[], Root>} */
-  const plugin = () => (root) => {
+  const plugin: Plugin<void[], Root> = () => (root) => {
     root.children.unshift({
       type: 'element',
       tagName: 'i',
@@ -1291,8 +1239,7 @@ test('should support `style` properties', () => {
 test('should support `style` properties w/ vendor prefixes', () => {
   const input = 'a'
 
-  /** @type {import('unified').Plugin<void[], Root>} */
-  const plugin = () => (root) => {
+  const plugin: Plugin<void[], Root> = () => (root) => {
     root.children.unshift({
       type: 'element',
       tagName: 'i',
@@ -1309,8 +1256,7 @@ test('should support `style` properties w/ vendor prefixes', () => {
 test('should support broken `style` properties', () => {
   const input = 'a'
 
-  /** @type {import('unified').Plugin<void[], Root>} */
-  const plugin = () => (root) => {
+  const plugin: Plugin<void[], Root> = () => (root) => {
     root.children.unshift({
       type: 'element',
       tagName: 'i',
@@ -1327,8 +1273,7 @@ test('should support broken `style` properties', () => {
 test('should support SVG elements', () => {
   const input = 'a'
 
-  /** @type {import('unified').Plugin<void[], Root>} */
-  const plugin = () => (root) => {
+  const plugin: Plugin<void[], Root> = () => (root) => {
     root.children.unshift({
       type: 'element',
       tagName: 'svg',
@@ -1366,8 +1311,7 @@ test('should support SVG elements', () => {
 test('should support (ignore) comments', () => {
   const input = 'a'
 
-  /** @type {import('unified').Plugin<void[], Root>} */
-  const plugin = () => (root) => {
+  const plugin: Plugin<void[], Root> = () => (root) => {
     root.children.unshift({type: 'comment', value: 'things!'})
   }
 
@@ -1379,8 +1323,7 @@ test('should support (ignore) comments', () => {
 test('should support table cells w/ style', () => {
   const input = '| a  |\n| :- |'
 
-  /** @type {import('unified').Plugin<void[], Root>} */
-  const plugin = () => (root) => {
+  const plugin: Plugin<void[], Root> = () => (root) => {
     visit(root, {type: 'element', tagName: 'th'}, (node) => {
       node.properties = {...(node.properties || {}), style: 'color: red'}
     })
@@ -1397,9 +1340,8 @@ test('should support table cells w/ style', () => {
 
 test('should crash on a plugin replacing `root`', () => {
   const input = 'a'
-  /** @type {import('unified').Plugin<void[], Root>} */
-  // @ts-expect-error: runtime.
-  const plugin = () => () => ({type: 'comment', value: 'things!'})
+  // @ts-expect-error
+  const plugin: Plugin<void[], Root> = () => () => ({type: 'comment', value: 'things!'})
   assert.throws(() => {
     asHtml(<Markdown children={input} rehypePlugins={[plugin]} />)
   }, /Expected a `root` node/)

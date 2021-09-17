@@ -1,111 +1,66 @@
-/**
- * @typedef {import('react').ReactNode} ReactNode
- * @typedef {import('unist').Position} Position
- * @typedef {import('hast').Element} Element
- * @typedef {import('hast').ElementContent} ElementContent
- * @typedef {import('hast').Root} Root
- * @typedef {import('hast').Text} Text
- * @typedef {import('hast').Comment} Comment
- * @typedef {import('hast').DocType} Doctype
- * @typedef {import('property-information').Info} Info
- * @typedef {import('property-information').Schema} Schema
- * @typedef {import('./complex-types').ReactMarkdownProps} ReactMarkdownProps
- *
- * @typedef Raw
- * @property {'raw'} type
- * @property {string} value
- *
- * @typedef Context
- * @property {Options} options
- * @property {Schema} schema
- * @property {number} listDepth
- *
- * @callback TransformLink
- * @param {string} href
- * @param {Array.<ElementContent>} children
- * @param {string?} title
- * @returns {string}
- *
- * @callback TransformImage
- * @param {string} src
- * @param {string} alt
- * @param {string?} title
- * @returns {string}
- *
- * @typedef {import("react").HTMLAttributeAnchorTarget} TransformLinkTargetType
- *
- * @callback TransformLinkTarget
- * @param {string} href
- * @param {Array.<ElementContent>} children
- * @param {string?} title
- * @returns {TransformLinkTargetType|undefined}
- *
- * @typedef {keyof JSX.IntrinsicElements} ReactMarkdownNames
- *
- * To do: is `data-sourcepos` typeable?
- *
- * @callback CodeComponent
- * @param {JSX.IntrinsicElements['code'] & ReactMarkdownProps & {inline?: boolean}} props
- * @returns {ReactNode}
- *
- * @callback HeadingComponent
- * @param {JSX.IntrinsicElements['h1'] & ReactMarkdownProps & {level: number}} props
- * @returns {ReactNode}
- *
- * @callback LiComponent
- * @param {JSX.IntrinsicElements['li'] & ReactMarkdownProps & {checked: boolean|null, index: number, ordered: boolean}} props
- * @returns {ReactNode}
- *
- * @callback OrderedListComponent
- * @param {JSX.IntrinsicElements['ol'] & ReactMarkdownProps & {depth: number, ordered: true}} props
- * @returns {ReactNode}
- *
- * @callback TableCellComponent
- * @param {JSX.IntrinsicElements['table'] & ReactMarkdownProps & {style?: Object.<string, unknown>, isHeader: boolean}} props
- * @returns {ReactNode}
- *
- * @callback TableRowComponent
- * @param {JSX.IntrinsicElements['tr'] & ReactMarkdownProps & {isHeader: boolean}} props
- * @returns {ReactNode}
- *
- * @callback UnorderedListComponent
- * @param {JSX.IntrinsicElements['ul'] & ReactMarkdownProps & {depth: number, ordered: false}} props
- * @returns {ReactNode}
- *
- * @typedef SpecialComponents
- * @property {CodeComponent|ReactMarkdownNames} code
- * @property {HeadingComponent|ReactMarkdownNames} h1
- * @property {HeadingComponent|ReactMarkdownNames} h2
- * @property {HeadingComponent|ReactMarkdownNames} h3
- * @property {HeadingComponent|ReactMarkdownNames} h4
- * @property {HeadingComponent|ReactMarkdownNames} h5
- * @property {HeadingComponent|ReactMarkdownNames} h6
- * @property {LiComponent|ReactMarkdownNames} li
- * @property {OrderedListComponent|ReactMarkdownNames} ol
- * @property {TableCellComponent|ReactMarkdownNames} td
- * @property {TableCellComponent|ReactMarkdownNames} th
- * @property {TableRowComponent|ReactMarkdownNames} tr
- * @property {UnorderedListComponent|ReactMarkdownNames} ul
- *
- * @typedef {Partial<Omit<import("./complex-types").NormalComponents, keyof SpecialComponents> & SpecialComponents>} Components
- *
- * @typedef Options
- * @property {boolean} [sourcePos=false]
- * @property {boolean} [rawSourcePos=false]
- * @property {boolean} [skipHtml=false]
- * @property {boolean} [includeElementIndex=false]
- * @property {null|false|TransformLink} [transformLinkUri]
- * @property {TransformImage} [transformImageUri]
- * @property {TransformLinkTargetType|TransformLinkTarget} [linkTarget]
- * @property {Components} [components]
- */
-
-import React from 'react'
+import React, {HTMLAttributeAnchorTarget, ReactNode} from 'react'
 import ReactIs from 'react-is'
 import {svg, find, hastToReact} from 'property-information'
 import {stringify as spaces} from 'space-separated-tokens'
 import {stringify as commas} from 'comma-separated-tokens'
 import style from 'style-to-object'
+import {DocType, Element, ElementContent, Root, Text, Comment} from 'hast'
+import {Schema} from 'property-information'
+import {NormalComponents, ReactMarkdownProps} from './complex-types'
+import {Position} from 'unist'
+
+interface Raw {
+  type: 'raw';
+  value: string;
+}
+
+interface Context {
+  options: Options;
+  schema: Schema
+  listDepth: number
+}
+
+type TransformLink = (href: string, children: ElementContent[], title?: string) => string;
+type TransformImage = (src: string, alt: string, title?: string) => string;
+type TransformLinkTargetType = HTMLAttributeAnchorTarget;
+type TransformLinkTarget = (href: string, children: ElementContent[], title?: string) => TransformLinkTargetType | undefined;
+type ReactMarkdownNames = keyof JSX.IntrinsicElements;
+type CodeComponent = (props: JSX.IntrinsicElements['code'] & ReactMarkdownProps & {inline?: boolean}) => ReactNode;
+type HeadingComponent = (props: JSX.IntrinsicElements['h1'] & ReactMarkdownProps & {level: number}) => ReactNode;
+type LiComponent = (props: JSX.IntrinsicElements['li'] & ReactMarkdownProps & {checked: boolean | null, index: number, ordered: boolean}) => ReactNode;
+type OrderedListComponent = (props: JSX.IntrinsicElements['ol'] & ReactMarkdownProps & {depth: number, ordered: true}) => ReactNode;
+type TableCellComponent = (props: JSX.IntrinsicElements['table'] & ReactMarkdownProps & {style?: {[key: string]: unknown}, isHeader: boolean}) => ReactNode
+type TableRowComponent = (props: JSX.IntrinsicElements['tr'] & ReactMarkdownProps & {isHeader: boolean}) => ReactNode
+type UnorderedListComponent = (props: JSX.IntrinsicElements['ul'] & ReactMarkdownProps & {depth: number, ordered: false}) => ReactNode
+
+interface SpecialComponents {
+  code: CodeComponent | ReactMarkdownNames;
+  h1: HeadingComponent | ReactMarkdownNames;
+  h2: HeadingComponent | ReactMarkdownNames;
+  h3: HeadingComponent | ReactMarkdownNames;
+  h4: HeadingComponent | ReactMarkdownNames;
+  h5: HeadingComponent | ReactMarkdownNames
+  h6: HeadingComponent | ReactMarkdownNames
+  li: LiComponent | ReactMarkdownNames;
+  ol: OrderedListComponent | ReactMarkdownNames;
+  td: TableCellComponent | ReactMarkdownNames;
+  th: TableCellComponent | ReactMarkdownNames;
+  tr: TableRowComponent | ReactMarkdownNames;
+  ul: UnorderedListComponent | ReactMarkdownNames;
+}
+
+type Components = Partial<Omit<NormalComponents, keyof SpecialComponents> & SpecialComponents>;
+
+export interface Options {
+  sourcePos?: boolean;
+  rawSourcePos?: boolean;
+  skipHtml?: boolean;
+  includeElementIndex?: boolean;
+  transformLinkUri?: null | false | TransformLink;
+  transformImageUri?: TransformImage;
+  linkTarget?: TransformLinkTargetType | TransformLinkTarget;
+  components?: Components
+}
 
 const own = {}.hasOwnProperty
 
@@ -113,16 +68,10 @@ const own = {}.hasOwnProperty
 // to React.
 const tableElements = new Set(['table', 'thead', 'tbody', 'tfoot', 'tr'])
 
-/**
- * @param {Context} context
- * @param {Element|Root} node
- */
-export function childrenToReact(context, node) {
-  /** @type {Array.<ReactNode>} */
-  const children = []
+export function childrenToReact(context: Context, node: Element | Root) {
+  const children: ReactNode[] = []
   let childIndex = -1
-  /** @type {Comment|Doctype|Element|Raw|Text} */
-  let child
+  let child: Comment | DocType | Element | Raw | Text
 
   while (++childIndex < node.children.length) {
     child = node.children[childIndex]
@@ -148,23 +97,16 @@ export function childrenToReact(context, node) {
   return children
 }
 
-/**
- * @param {Context} context
- * @param {Element} node
- * @param {number} index
- * @param {Element|Root} parent
- */
-function toReact(context, node, index, parent) {
+function toReact(context: Context, node: Element, index: number, parent: Element | Root) {
   const options = context.options
   const parentSchema = context.schema
-  /** @type {ReactMarkdownNames} */
-  // @ts-expect-error assume a known HTML/SVG element.
-  const name = node.tagName
-  /** @type {Object.<string, unknown>} */
-  const properties = {}
+  const name: ReactMarkdownNames = node.tagName as ReactMarkdownNames;
+  const properties: {
+    [key: string]: unknown;
+    style?: {[key: string]: unknown}
+  } = {}
   let schema = parentSchema
-  /** @type {string} */
-  let property
+  let property: string
 
   if (parentSchema.space === 'html' && name === 'svg') {
     schema = svg
@@ -221,10 +163,10 @@ function toReact(context, node, index, parent) {
     properties.target =
       typeof options.linkTarget === 'function'
         ? options.linkTarget(
-            String(properties.href || ''),
-            node.children,
-            typeof properties.title === 'string' ? properties.title : null
-          )
+          String(properties.href || ''),
+          node.children,
+          typeof properties.title === 'string' ? properties.title : undefined
+        )
         : options.linkTarget
   }
 
@@ -232,7 +174,7 @@ function toReact(context, node, index, parent) {
     properties.href = options.transformLinkUri(
       String(properties.href || ''),
       node.children,
-      typeof properties.title === 'string' ? properties.title : null
+      typeof properties.title === 'string' ? properties.title : undefined
     )
   }
 
@@ -261,7 +203,7 @@ function toReact(context, node, index, parent) {
     properties.src = options.transformImageUri(
       String(properties.src || ''),
       String(properties.alt || ''),
-      typeof properties.title === 'string' ? properties.title : null
+      typeof properties.title === 'string' ? properties.title : undefined
     )
   }
 
@@ -281,7 +223,6 @@ function toReact(context, node, index, parent) {
   if (name === 'td' || name === 'th') {
     if (properties.align) {
       if (!properties.style) properties.style = {}
-      // @ts-expect-error assume `style` is an object
       properties.style.textAlign = properties.align
       delete properties.align
     }
@@ -320,11 +261,7 @@ function toReact(context, node, index, parent) {
     : React.createElement(component, properties)
 }
 
-/**
- * @param {Element|Root} node
- * @returns {Element?}
- */
-function getInputElement(node) {
+function getInputElement(node: Element | Root): Element | null {
   let index = -1
 
   while (++index < node.children.length) {
@@ -335,15 +272,10 @@ function getInputElement(node) {
     }
   }
 
-  return null
+  return null;
 }
 
-/**
- * @param {Element|Root} parent
- * @param {Element} [node]
- * @returns {number}
- */
-function getElementsBeforeCount(parent, node) {
+function getElementsBeforeCount(parent: Element | Root, node?: Element): number {
   let index = -1
   let count = 0
 
@@ -355,13 +287,7 @@ function getElementsBeforeCount(parent, node) {
   return count
 }
 
-/**
- * @param {Object.<string, unknown>} props
- * @param {string} prop
- * @param {unknown} value
- * @param {Context} ctx
- */
-function addProperty(props, prop, value, ctx) {
+function addProperty(props: {[key: string]: unknown}, prop: string, value: unknown, ctx: Context) {
   const info = find(ctx.schema, prop)
   let result = value
 
@@ -384,21 +310,16 @@ function addProperty(props, prop, value, ctx) {
   if (info.space && info.property) {
     props[
       own.call(hastToReact, info.property)
-        ? hastToReact[info.property]
+        ? hastToReact[info.property as keyof typeof hastToReact]
         : info.property
-    ] = result
+      ] = result
   } else if (info.attribute) {
     props[info.attribute] = result
   }
 }
 
-/**
- * @param {string} value
- * @returns {Object.<string, string>}
- */
-function parseStyle(value) {
-  /** @type {Object.<string, string>} */
-  const result = {}
+function parseStyle(value: string): {[key: string]: string} {
+  const result: {[key: string]: string} = {}
 
   try {
     style(value, iterator)
@@ -408,29 +329,17 @@ function parseStyle(value) {
 
   return result
 
-  /**
-   * @param {string} name
-   * @param {string} v
-   */
-  function iterator(name, v) {
+  function iterator(name: string, v: string) {
     const k = name.slice(0, 4) === '-ms-' ? `ms-${name.slice(4)}` : name
     result[k.replace(/-([a-z])/g, styleReplacer)] = v
   }
 }
 
-/**
- * @param {unknown} _
- * @param {string} $1
- */
-function styleReplacer(_, $1) {
+function styleReplacer(_: unknown, $1: string) {
   return $1.toUpperCase()
 }
 
-/**
- * @param {Position|{start: {line: null, column: null, offset: null}, end: {line: null, column: null, offset: null}}} pos
- * @returns {string}
- */
-function flattenPosition(pos) {
+function flattenPosition(pos: Position | {start: {line: null, column: null, offset: null}, end: {line: null, column: null, offset: null}}): string {
   return [
     pos.start.line,
     ':',

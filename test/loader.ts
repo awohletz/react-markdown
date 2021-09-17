@@ -12,23 +12,13 @@ export {getFormat, transformSource}
 export function createLoader() {
   return {getFormat, transformSource}
 
-  /**
-   * @param {string} url
-   * @param {unknown} context
-   * @param {Function} defaultGetFormat
-   */
-  function getFormat(url, context, defaultGetFormat) {
+  function getFormat(url: string, context: unknown, defaultGetFormat: Function) {
     return path.extname(url) === '.jsx'
       ? {format: 'module'}
       : defaultGetFormat(url, context, defaultGetFormat)
   }
 
-  /**
-   * @param {Buffer} value
-   * @param {{url: string, [x: string]: unknown}} context
-   * @param {Function} defaultTransformSource
-   */
-  async function transformSource(value, context, defaultTransformSource) {
+  async function transformSource(value: Buffer, context: {url: string, [x: string]: unknown}, defaultTransformSource: Function) {
     if (path.extname(context.url) !== '.jsx') {
       return defaultTransformSource(value, context, defaultTransformSource)
     }

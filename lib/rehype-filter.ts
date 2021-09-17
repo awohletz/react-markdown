@@ -1,27 +1,18 @@
 import {visit} from 'unist-util-visit'
+import {Element, Root} from 'hast'
+import {Plugin} from 'unified'
+import {Node} from 'unist'
 
-/**
- * @typedef {import('unist').Node} Node
- * @typedef {import('hast').Root} Root
- * @typedef {import('hast').Element} Element
- *
- * @callback AllowElement
- * @param {Element} element
- * @param {number} index
- * @param {Element|Root} parent
- * @returns {boolean|undefined}
- *
- * @typedef Options
- * @property {Array.<string>} [allowedElements]
- * @property {Array.<string>} [disallowedElements=[]]
- * @property {AllowElement} [allowElement]
- * @property {boolean} [unwrapDisallowed=false]
- */
+type AllowElement = (element: Element, index: number, parent: Element | Root | null) => boolean | undefined;
 
-/**
- * @type {import('unified').Plugin<[Options], Root>}
- */
-export default function rehypeFilter(options) {
+export interface Options {
+  allowedElements?: string[];
+  disallowedElements?: string[];
+  allowElement?: AllowElement;
+  unwrapDisallowed?: boolean;
+}
+
+export default function rehypeFilter(options: Options) {
   if (options.allowedElements && options.disallowedElements) {
     throw new TypeError(
       'Only one of `allowedElements` and `disallowedElements` should be defined'
@@ -33,11 +24,10 @@ export default function rehypeFilter(options) {
     options.disallowedElements ||
     options.allowElement
   ) {
-    return (tree) => {
-      visit(tree, 'element', (node, index, parent_) => {
-        const parent = /** @type {Element|Root} */ (parent_)
-        /** @type {boolean|undefined} */
-        let remove
+    return (tree: Node) => {
+      visit(tree, 'element', (node: Element, index, parent_) => {
+        const parent = parent_ as Element | Root | null
+        let remove: boolean | undefined
 
         if (options.allowedElements) {
           remove = !options.allowedElements.includes(node.tagName)
@@ -51,9 +41,9 @@ export default function rehypeFilter(options) {
 
         if (remove && typeof index === 'number') {
           if (options.unwrapDisallowed && node.children) {
-            parent.children.splice(index, 1, ...node.children)
+            parent?.children.splice(index, 1, ...node.children)
           } else {
-            parent.children.splice(index, 1)
+            parent?.children.splice(index, 1)
           }
 
           return index

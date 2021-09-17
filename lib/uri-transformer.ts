@@ -1,10 +1,6 @@
 const protocols = ['http', 'https', 'mailto', 'tel']
 
-/**
- * @param {string} uri
- * @returns {string}
- */
-export function uriTransformer(uri) {
+export function uriTransformer(uri: string): string {
   const url = (uri || '').trim()
   const first = url.charAt(0)
 
